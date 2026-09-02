@@ -670,6 +670,7 @@ footer a:hover{color:#fff}
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-t4nxFXNvz_7aDt5h4gFKKCPQNugu6J2nhg0ZOM3JKDyTUiKx0F1z-f_HG1F9KqzKcA/exec"; // ← paste your Apps Script Web app URL here
 const REG_DEADLINE = "2026-09-12";
 const WHATSAPP_URL = "https://chat.whatsapp.com/HmLImwX6g6l8i1l8fcc57E?mode=gi_t";
+const TODAY = new Date().toISOString().slice(0,10);
 const CATEGORIES = [
   {id:"10K", dist:"10K", tier:"Timed · Elite", price:299, cls:"cat-10k", type:"adult",
    benefits:["Chip-timed bib","Finisher medal","Event T-shirt","Finisher certificate"]},
@@ -786,7 +787,7 @@ function startCountdown(){
 /* ============ PARTICIPANTS ============ */
 function newParticipant(cat="10K"){
   return {category:cat,name:"",mobile:"",email:"",dob:"",gender:"",tshirt:"",bloodGroup:"",
-    emergencyName:"",relationship:"",emergencyPhone:"",guardianName:"",accompany:""};
+    emergencyName:"",relationship:"",emergencyPhone:"",guardianName:"",accompany:"",aadhaar:"",aadhaarName:""};
 }
 function ageFrom(dob){
   if(!dob) return "";
@@ -806,11 +807,11 @@ function renderParticipants(){
       <select data-f="category" data-i="${i}">${catOpts}</select></div>`;
     if(kid){
       return `<div class="p-card kid" data-i="${i}">${head}${catField}
-        <div class="kid-banner">🧒 Kids Run · 1K · FREE — registered by parent/guardian</div>
+        <div class="kid-banner">🧒 Kids Run · 1K · FREE — for children 12 &amp; under (born on or after 1 Jan 2014), registered by a parent/guardian</div>
         <div class="field"><label>Child's full name <span class="req">*</span></label>
           <input data-f="name" data-i="${i}" value="${esc(p.name)}" placeholder="Child's name"></div>
         <div class="row2">
-          <div class="field"><label>Date of birth <span class="req">*</span></label><input type="date" data-f="dob" data-i="${i}" value="${p.dob}"></div>
+          <div class="field"><label>Date of birth <span class="req">*</span></label><input type="date" data-f="dob" data-i="${i}" value="${p.dob}" min="2014-01-01" max="${TODAY}"></div>
           <div class="field"><label>Gender <span class="req">*</span></label><select data-f="gender" data-i="${i}">${opts(GENDERS,p.gender)}</select></div>
         </div>
         <div class="field"><label>Parent / guardian name <span class="req">*</span></label>
@@ -824,6 +825,12 @@ function renderParticipants(){
         <div class="field"><label>Blood group of child <span class="req">*</span></label><select data-f="bloodGroup" data-i="${i}">${opts(BLOOD_KID,p.bloodGroup)}</select></div>
         <div class="field"><label>Will you accompany your child during the run? <span class="req">*</span></label>
           <select data-f="accompany" data-i="${i}">${opts(["","Yes","No"],p.accompany)}</select></div>
+        <div class="field"><label>Child's Aadhaar card (photo or PDF) <span class="req">*</span></label>
+          <label class="file-drop aadhaar-drop ${p.aadhaar?'has':''}" data-i="${i}">
+            <span class="aadhaar-label">${p.aadhaar?'✓ Aadhaar attached — tap to change':'Tap to upload Aadhaar card'}</span>
+            <input type="file" data-aadhaar="${i}" accept="image/*,application/pdf" hidden>
+          </label>
+          <div class="hint">Required for age verification. Stored privately for the organiser only.</div></div>
       </div>`;
     }
     return `<div class="p-card" data-i="${i}">${head}${catField}
@@ -836,7 +843,7 @@ function renderParticipants(){
           <input type="email" data-f="email" data-i="${i}" value="${esc(p.email)}" placeholder="you@example.com"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>Date of birth <span class="req">*</span></label><input type="date" data-f="dob" data-i="${i}" value="${p.dob}"></div>
+        <div class="field"><label>Date of birth <span class="req">*</span></label><input type="date" data-f="dob" data-i="${i}" value="${p.dob}" max="${TODAY}"></div>
         <div class="field"><label>Gender <span class="req">*</span></label><select data-f="gender" data-i="${i}">${opts(GENDERS,p.gender)}</select></div>
       </div>
       <div class="row2">
@@ -859,6 +866,9 @@ function renderParticipants(){
     el.addEventListener(ev,()=>{ participants[i][f]=el.value; if(f==="category"||f==="dob") renderParticipants(); updateCart(); });
   });
   list.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{participants.splice(+b.dataset.remove,1);renderParticipants();updateCart();});
+  list.querySelectorAll("input[data-aadhaar]").forEach(inp=>{
+    inp.addEventListener("change",()=>processAadhaar(+inp.dataset.aadhaar, inp.files[0]));
+  });
   updateCart();
 }
 function esc(s){return (s||"").replace(/"/g,'&quot;');}
@@ -894,8 +904,10 @@ function validateParticipants(){
     if(!reEmail.test(p.email)) return failP(i,`Enter a valid ${kid?'guardian ':''}email for ${kid?'child':'participant'} ${i+1}`);
     if(!p.bloodGroup) return failP(i,`Select blood group for ${kid?'child':'participant'} ${i+1}`);
     if(kid){
+      if(p.dob && p.dob < "2014-01-01") return failP(i,`Kids Run is for children aged 12 & under (born on or after 1 Jan 2014) — check child ${i+1}`);
       if(p.guardianName.trim().length<2) return failP(i,`Enter parent/guardian name for child ${i+1}`);
       if(!p.accompany) return failP(i,`Tell us whether you'll accompany child ${i+1}`);
+      if(!p.aadhaar) return failP(i,`Please upload the child's Aadhaar card for child ${i+1}`);
     }else{
       if(!p.tshirt) return failP(i,`Select a T-shirt size for participant ${i+1}`);
       if(p.emergencyName.trim().length<2) return failP(i,`Enter an emergency contact name for participant ${i+1}`);
@@ -995,7 +1007,7 @@ function submitRegistration(){
         gender:p.gender, mobile:p.mobile, email:p.email, tshirt:kid?"":p.tshirt, bloodGroup:p.bloodGroup,
         emergencyName:kid?p.guardianName:p.emergencyName, relationship:kid?"Parent/Guardian":p.relationship,
         emergencyPhone:p.mobile, guardianName:kid?p.guardianName:"", accompany:kid?p.accompany:"",
-        consent:kid?termsKids:termsAdult};
+        aadhaar:p.aadhaar||"", consent:kid?termsKids:termsAdult};
     })
   };
   const done=()=>showConfirmation(regId);
@@ -1047,6 +1059,30 @@ document.getElementById("shot").addEventListener("change",e=>{
     document.getElementById("fileLabel").textContent="✓ Screenshot attached — tap to change";
   }; img.src=rd.result;}; rd.readAsDataURL(file);
 });
+
+/* Aadhaar upload (kids) — image is downscaled; PDF kept as-is (size capped) */
+function processAadhaar(i,file){
+  if(!file) return;
+  if(file.type==="application/pdf"){
+    if(file.size>4*1024*1024){ toast("Aadhaar PDF is too large — please upload under 4 MB, or a photo."); return; }
+    const rd=new FileReader();
+    rd.onload=()=>{ participants[i].aadhaar=rd.result; participants[i].aadhaarName=file.name; markAadhaar(i); };
+    rd.readAsDataURL(file);
+  }else{
+    const rd=new FileReader(), img=new Image();
+    rd.onload=()=>{ img.onload=()=>{
+      const max=1600, sc=Math.min(1,max/Math.max(img.width,img.height));
+      const cv=document.createElement("canvas"); cv.width=img.width*sc; cv.height=img.height*sc;
+      cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+      participants[i].aadhaar=cv.toDataURL("image/jpeg",0.78); participants[i].aadhaarName=file.name; markAadhaar(i);
+    }; img.src=rd.result; };
+    rd.readAsDataURL(file);
+  }
+}
+function markAadhaar(i){
+  const el=document.querySelector('.aadhaar-drop[data-i="'+i+'"]');
+  if(el){ el.classList.add("has"); const lb=el.querySelector(".aadhaar-label"); if(lb) lb.textContent="✓ Aadhaar attached — tap to change"; }
+}
 
 /* ============ OPEN / CLOSE ============ */
 function openReg(cat){
