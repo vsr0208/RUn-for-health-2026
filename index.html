@@ -671,7 +671,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-t4nxFXNvz_7a
 const REG_DEADLINE = "2026-09-12";
 const WHATSAPP_URL = "https://chat.whatsapp.com/HmLImwX6g6l8i1l8fcc57E?mode=gi_t";
 const TODAY = new Date().toISOString().slice(0,10);
-const ADULT_MAX_DOB = (function(){var d=new Date(); d.setFullYear(d.getFullYear()-18); return d.toISOString().slice(0,10);})();
+const ADULT_MAX_DOB = (function(){var d=new Date(); d.setFullYear(d.getFullYear()-12); return d.toISOString().slice(0,10);})();
 const CATEGORIES = [
   {id:"10K", dist:"10K", tier:"Timed · Elite", price:299, cls:"cat-10k", type:"adult",
    benefits:["Chip-timed bib","Finisher medal","Event T-shirt","Finisher certificate"]},
@@ -922,7 +922,7 @@ function validateParticipants(){
       if(!p.accompany) return failP(i,`Tell us whether you'll accompany child ${i+1}`);
       if(!p.aadhaar) return failP(i,`Please upload the child's Aadhaar card for child ${i+1}`);
     }else{
-      if(ageFrom(p.dob)!=="" && ageFrom(p.dob)<18) return failP(i,`The 10K / 5K / 3K races are for participants aged 18 & over — check participant ${i+1}`);
+      if(ageFrom(p.dob)!=="" && ageFrom(p.dob)<12) return failP(i,`The 10K / 5K / 3K races are for participants aged 12 & over — check participant ${i+1}`);
       if(!p.tshirt) return failP(i,`Select a T-shirt size for participant ${i+1}`);
       if(p.emergencyName.trim().length<2) return failP(i,`Enter an emergency contact name for participant ${i+1}`);
       if(p.relationship.trim().length<2) return failP(i,`Enter the emergency contact relationship for participant ${i+1}`);
