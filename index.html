@@ -679,7 +679,7 @@ const CATEGORIES = [
    benefits:["Chip-timed bib","Finisher medal","Event T-shirt","Finisher certificate"]},
   {id:"3K", dist:"3K", tier:"Timed · Fun", price:299, cls:"cat-3k", type:"adult",
    benefits:["Chip-timed bib","Finisher medal","Event T-shirt","Finisher certificate"]},
-  {id:"1K", dist:"1K", tier:"Non-timed · Kids", price:0, cls:"cat-1k", type:"child",
+  {id:"1K", dist:"1K", tier:"Non-timed · Kids", price:0, cls:"cat-1k", type:"child", closed:true,
    benefits:["Finisher medal","Event T-shirt","Refreshments","Parent/guardian registered"]}
 ];
 const TSHIRTS=["S","M","L","XL","XXL"];
@@ -733,13 +733,18 @@ function isOpen(){ return new Date() <= new Date(REG_DEADLINE+"T23:59:59+05:30")
 /* ============ LANDING ============ */
 function renderCats(){
   const open=isOpen();
-  document.getElementById("catGrid").innerHTML=CATEGORIES.map(c=>`
-    <div class="cat ${c.cls}"><div class="bar"></div><div class="cat-body">
-      <div class="dist">${c.dist}</div><div class="tier">${c.tier}</div>
+  document.getElementById("catGrid").innerHTML=CATEGORIES.map(c=>{
+    const canReg = open && !c.closed;
+    const btn = canReg
+      ? `<button class="btn reg-open" data-cat="${c.id}">Register</button>`
+      : `<button class="btn" disabled style="background:var(--cream-2);color:var(--muted);cursor:not-allowed">${c.closed?'Registrations full':'Registrations closed'}</button>`;
+    return `<div class="cat ${c.cls}"><div class="bar"></div><div class="cat-body">
+      <div class="dist">${c.dist}</div><div class="tier">${c.tier}${c.closed?' · FULL':''}</div>
       <div class="price ${c.price===0?'free':''}">${c.price===0?'FREE':'₹'+c.price}</div>
       <ul>${c.benefits.map(b=>`<li>${b}</li>`).join("")}</ul>
-      <button class="btn reg-open" data-cat="${c.id}">${open?'Register':'Registrations closed'}</button>
-    </div></div>`).join("");
+      ${btn}
+    </div></div>`;
+  }).join("");
 }
 const FAQS=[
  ["Can I register my family together?","Yes — that's exactly how it works. One person is the coordinator and adds a participant for each family member in a single registration and payment."],
@@ -801,7 +806,7 @@ function renderParticipants(){
   const list=document.getElementById("pList");
   list.innerHTML=participants.map((p,i)=>{
     const cat=catById(p.category), kid=cat.type==="child", age=ageFrom(p.dob);
-    const catOpts=CATEGORIES.map(c=>`<option value="${c.id}" ${c.id===p.category?'selected':''}>${c.dist} — ${c.tier} — ${c.price===0?'Free':'₹'+c.price}</option>`).join("");
+    const catOpts=CATEGORIES.map(c=>`<option value="${c.id}" ${c.id===p.category?'selected':''} ${c.closed?'disabled':''}>${c.dist} — ${c.tier} — ${c.price===0?'Free':'₹'+c.price}${c.closed?' — FULL':''}</option>`).join("");
     const head=`<div class="p-head"><b>${kid?'Child':'Participant'} ${i+1} <span class="age-pill" data-age="${i}" style="${age!==''?'':'display:none'}">Age ${age}</span></b>
       ${participants.length>1?`<button class="p-remove" data-remove="${i}">Remove</button>`:''}</div>`;
     const catField=`<div class="field"><label>Race category <span class="req">*</span></label>
@@ -910,6 +915,7 @@ function validateParticipants(){
   if(participants.length===0){toast("Add at least one participant.");return false;}
   for(let i=0;i<participants.length;i++){
     const p=participants[i], kid=catById(p.category).type==="child";
+    if(catById(p.category).closed) return failP(i,`${catById(p.category).dist} registrations are now full — please choose another race for participant ${i+1}`);
     if(p.name.trim().length<2) return failP(i,`Enter a name for ${kid?'child':'participant'} ${i+1}`);
     if(!p.dob) return failP(i,`Enter date of birth for ${kid?'child':'participant'} ${i+1}`);
     if(!p.gender) return failP(i,`Select gender for ${kid?'child':'participant'} ${i+1}`);
@@ -1101,6 +1107,7 @@ function markAadhaar(i){
 /* ============ OPEN / CLOSE ============ */
 function openReg(cat){
   if(!isOpen()){toast("Registrations are closed.");return;}
+  const cc=cat&&catById(cat); if(cc&&cc.closed){ toast(cc.dist+" registrations are full."); cat=null; }
   if(participants.length===0) participants=[newParticipant(cat||"10K")];
   else if(cat) participants[0].category=cat;
   renderParticipants(); goStep(1);
