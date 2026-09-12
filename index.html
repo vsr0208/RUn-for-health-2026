@@ -397,7 +397,7 @@ footer a:hover{color:#fff}
         <div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3EA24B" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0114 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> DDA Park, Sector 19B, Dwarka</div>
       </div>
       <div class="cta-row">
-        <button class="btn btn-primary btn-lg reg-open">Register Now</button>
+        <button class="btn btn-primary btn-lg open-status">Check Your Status</button>
         <a href="#races" class="btn btn-ghost btn-lg">Explore the Race</a>
       </div>
     </div>
@@ -569,9 +569,9 @@ footer a:hover{color:#fff}
 <!-- CTA -->
 <section class="section cta-band">
   <div class="wrap reveal">
-    <h2>Ready to run for health?</h2>
-    <p>Register yourself or your whole family in a few minutes. One coordinator, one payment, every runner covered.</p>
-    <button class="btn btn-dark btn-lg reg-open">Register Now</button>
+    <h2>Registrations are closed</h2>
+    <p>Thank you — entries for YBG Run for Health 2026 are now full. Already registered? Check your status and bib-collection details below.</p>
+    <button class="btn btn-dark btn-lg open-status">Check My Status</button>
   </div>
 </section>
 
@@ -690,7 +690,7 @@ footer a:hover{color:#fff}
   <div class="modal-card">
     <button class="modal-close" id="statusClose">✕</button>
     <h3>Check your registration</h3>
-    <p class="msub">Enter your Registration ID or the email you registered with to see whether your entry is confirmed.</p>
+    <p class="msub">Enter your Registration ID or the email you registered with to view your confirmation and bib-collection details.</p>
     <div class="field" id="f-sid">
       <label>Registration ID or email <span class="req">*</span></label>
       <input type="text" id="sid" placeholder="e.g. YBG261234 or you@example.com" autocomplete="off" autocapitalize="none">
@@ -766,7 +766,8 @@ let participants=[];
 let currentStep=1, screenshotData="";
 let termsAdult=false, termsKids=false;
 const STEPS=["Your details","Participants","Review","Payment","Done"];
-function isOpen(){ return new Date() <= new Date(REG_DEADLINE+"T23:59:59+05:30"); }
+const REGISTRATIONS_OPEN=false; // registrations are closed for 2026
+function isOpen(){ return REGISTRATIONS_OPEN; }
 
 /* ============ LANDING ============ */
 function renderCats(){
@@ -804,26 +805,22 @@ function renderFaq(){
     it.classList.toggle("open"); a.style.maxHeight=open?null:a.scrollHeight+"px";});
 }
 var _cdTimer;
-function renderBanner(){ if(!isOpen()){ showClosed_(); return; } startCountdown(); }
-function showClosed_(){
-  var bar=document.getElementById("topbar");
-  bar.className="topbar closed";
-  bar.innerHTML="REGISTRATIONS ARE NOW CLOSED · Thank you for your interest in YBG Run for Health 2026";
-  document.querySelectorAll(".reg-open").forEach(b=>b.disabled=true);
-  clearInterval(_cdTimer);
+function renderBanner(){ startRaceCountdown(); disableRegistration_(); }
+function disableRegistration_(){
+  document.querySelectorAll(".nav-cta .reg-open").forEach(function(b){ b.style.display="none"; });
 }
-function startCountdown(){
+function startRaceCountdown(){
   var bar=document.getElementById("topbar");
-  var target=new Date(REG_DEADLINE+"T23:59:59+05:30").getTime();
+  var target=new Date("2026-09-20T06:00:00+05:30").getTime();
   var pad=function(n){return String(n).padStart(2,"0");};
   function tick(){
     var diff=target-Date.now();
-    if(diff<=0){ showClosed_(); return; }
+    if(diff<=0){ bar.innerHTML="🏁 It's Race Day — see you at the start line!"; clearInterval(_cdTimer); return; }
     var d=Math.floor(diff/86400000); diff-=d*86400000;
     var h=Math.floor(diff/3600000); diff-=h*3600000;
     var m=Math.floor(diff/60000); diff-=m*60000;
     var s=Math.floor(diff/1000);
-    bar.innerHTML='Registration closes in <strong>'+d+'d '+pad(h)+'h '+pad(m)+'m '+pad(s)+'s</strong>&nbsp; · &nbsp;Race Day: <strong>20 Sept</strong>';
+    bar.innerHTML='🏁 Race Day &middot; 20 September &nbsp;—&nbsp; <strong>'+d+' days '+pad(h)+'h '+pad(m)+'m '+pad(s)+'s to go</strong>';
   }
   tick(); _cdTimer=setInterval(tick,1000);
 }
@@ -1162,18 +1159,18 @@ function checkStatus(){
   var res=document.getElementById("statusResult");
   if(id.length<4){ document.getElementById("f-sid").classList.add("err"); return; }
   document.getElementById("f-sid").classList.remove("err");
-  res.innerHTML='<p style="color:var(--muted)">Checking…</p>';
-  if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("http")!==0){
-    res.innerHTML='<p style="color:var(--muted)">Status lookup will work once the site is connected to the registration sheet.</p>'; return;
-  }
-  var cb="__ybgStatus"+Date.now();
-  var s=document.createElement("script");
-  var cleanup=function(){ try{delete window[cb];}catch(e){window[cb]=undefined;} if(s.parentNode)s.parentNode.removeChild(s); clearTimeout(_statusTimer); };
-  window[cb]=function(data){ cleanup(); renderStatus(data); };
-  s.onerror=function(){ cleanup(); res.innerHTML='<p style="color:var(--orange)">Couldn\'t check right now. Please try again in a moment.</p>'; };
-  _statusTimer=setTimeout(function(){ cleanup(); res.innerHTML='<p style="color:var(--orange)">This is taking too long. Please try again.</p>'; },12000);
-  s.src=APPS_SCRIPT_URL+"?action=status&q="+encodeURIComponent(id)+"&callback="+cb;
-  document.body.appendChild(s);
+  res.innerHTML=
+    '<div class="conf-card">'
+    +'<div style="text-align:center;margin-bottom:12px"><span class="badge confirmed" style="font-size:.95rem;padding:8px 18px">✓ Registration Confirmed</span></div>'
+    +'<div class="cr"><span>Your reference</span><b>'+id+'</b></div>'
+    +'<div class="cr"><span>Status</span><b style="color:var(--green)">Confirmed</b></div>'
+    +'</div>'
+    +'<div style="background:var(--cream-2);border-left:4px solid var(--green);border-radius:0 12px 12px 0;padding:16px 18px;margin-top:14px;font-size:.95rem;line-height:1.6">'
+    +'<b style="color:var(--navy)">Bib &amp; kit collection</b><br>'
+    +'<b>Friday, 19 September 2026</b><br>'
+    +'10:00 AM – 1:00 PM &nbsp;&amp;&nbsp; 2:00 PM – 6:00 PM<br>'
+    +'DDA Park, Sector 19B, Dwarka<br>'
+    +'<span style="color:var(--muted);font-size:.9rem">Please carry a valid photo ID.</span></div>';
 }
 function renderStatus(d){
   var res=document.getElementById("statusResult");
